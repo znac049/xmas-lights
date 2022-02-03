@@ -5,63 +5,68 @@
  */
 #include "WiFi.h"
 
-static int state = 1;
+#define CLOCK_FREQUENCY 80000000
+#define CYCLES_PER_SECOND 200
+#define PRESCALER CLOCK_FREQUENCY / (CYCLES_PER_SECOND * 512)
+
+#define POSITIVE_PHASE_PIN 26
+#define NEGATIVE_PHASE_PIN 27
+
+#define POSITIVE_PHASE 0
+#define NEGATIVE_PHASE 1
+
+volatile int ticks = 0;
+hw_timer_t *timer = NULL;
+
+static int state = POSITIVE_PHASE;
+static int cycles = 0;
+
+void IRAM_ATTR onTimer() {
+  ticks++;
+
+  if (ticks == 512) {
+    ticks = 0;
+    cycles++;
+
+    if (state == POSITIVE_PHASE) {
+      digitalWrite(POSITIVE_PHASE_PIN, 0);
+      digitalWrite(NEGATIVE_PHASE_PIN, 1);
+      state = NEGATIVE_PHASE;
+    }
+    else {
+      digitalWrite(NEGATIVE_PHASE_PIN, 0);
+      digitalWrite(POSITIVE_PHASE_PIN, 1);
+      state = POSITIVE_PHASE;
+    }
+  }
+}
 
 void setup()
 {
-    Serial.begin(115200);
+  Serial.begin(115200);
 
-    // Set WiFi to station mode and disconnect from an AP if it was previously connected
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    delay(100);
+  Serial.print("Prescaler: ");
+  Serial.println(PRESCALER);
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &onTimer, true);
+  timerAlarmWrite(timer, 10, true);
+  timerAlarmEnable(timer);
 
-    digitalWrite(12, 0);
-    digitalWrite(14, 0);
+  pinMode(POSITIVE_PHASE_PIN, OUTPUT);
+  pinMode(NEGATIVE_PHASE_PIN, OUTPUT);
+  digitalWrite(POSITIVE_PHASE_PIN, 0);
+  digitalWrite(NEGATIVE_PHASE_PIN, 0);
 
-    Serial.println("Setup done");
+  Serial.println("Setup done");
 }
 
 void loop()
 {
-    Serial.println("scan start");
+  register int copyOfTicks;
+  
+  Serial.print("Cycles: ");
+  Serial.println(cycles);
 
-    // WiFi.scanNetworks will return the number of networks found
-    int n = WiFi.scanNetworks();
-    Serial.println("scan done");
-    if (n == 0) {
-        Serial.println("no networks found");
-    } else {
-        Serial.print(n);
-        Serial.println(" networks found");
-        for (int i = 0; i < n; ++i) {
-            // Print SSID and RSSI for each network found
-            Serial.print(i + 1);
-            Serial.print(": ");
-            Serial.print(WiFi.SSID(i));
-            Serial.print(" (");
-            Serial.print(WiFi.RSSI(i));
-            Serial.print(")");
-            Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":"*");
-            delay(10);
-        }
-    }
-    Serial.println("");
-
-    if (state == 1) {
-      digitalWrite(12, 0);
-      digitalWrite(14, 1);
-      state = 0;
-      Serial.println("Flip.");
-    }
-    else {
-      digitalWrite(14, 0);
-      digitalWrite(12, 1);
-      state = 1;
-      Serial.println("Flop.");
-    }
-
-
-    // Wait a bit before scanning again
-    delay(5000);
+  // Wait a bit...
+  delay(2000);
 }
