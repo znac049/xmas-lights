@@ -164,14 +164,14 @@ void loop()
 
   ArduinoOTA.handle();
   
-  positive_level = analogRead(POSITIVE_POT_PIN);
-  negative_level = analogRead(NEGATIVE_POT_PIN);
+  positive_level = analogRead(POSITIVE_POT_PIN) >> 4;
+  negative_level = analogRead(NEGATIVE_POT_PIN) >> 4;
       
   Serial.print("Pot A: ");
-  Serial.print(analogRead(POSITIVE_POT_PIN));
+  Serial.print(positive_level);
 
   Serial.print("  Pot B: ");
-  Serial.print(analogRead(NEGATIVE_POT_PIN));
+  Serial.print(negative_level);
 
   Serial.print("  Cycles: ");
   Serial.print(cycles);
