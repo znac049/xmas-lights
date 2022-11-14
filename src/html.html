@@ -1,0 +1,209 @@
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+ <title>CLC - Chippers Light Controller</title>
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/css/bulma-extensions.min.css">
+ <link rel="icon" href="data:,">
+</head>
+<body>
+ <div class="columns">
+  <div class="column is-one-quarter is-offset-2">
+   <div class="panel is-primary">
+    <p class="panel-heading">
+     Device Settings - %DEVICEIP%
+    </p>
+   </div>
+   <form>
+    <div class="field">
+     <input id="blackout" name="blackout" class="switch is-rounded is-medium is-success" type="checkbox" %BLACKOUT%/>
+     <label for="blackout">Master light switch</label>
+    </div>
+   
+    <div class="field">
+     <label class="label">Device Name</label>
+     <div class="control">
+      <input id="devicename" class="input" type="text" value="%DEVICENAME%" />
+     </div>
+    </div>
+   
+    <div class="field">
+     <label class="label">number of LEDs</label>
+     <div class="control">
+      <input id="numleds" class="input" type="text" value="%NUMLEDS%" />
+     </div>
+    </div>
+
+    <div class="field">
+      <label class="label">LED Colour Order <small>(triggers a reboot)</small></label>
+      <div class="control">
+       <div class="select">
+        <select id="order" class="input" type="text">
+         %LEDORDER%
+        </select>
+       </div>
+      </div>
+     </div>
+ 
+     <div class="field">
+     <label class="label">Pattern</label>
+     <div class="control">
+      <div class="select">
+       <select id="pattern" class="input" type="text">
+        %PATTERNS%
+       </select>
+      </div>
+     </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Brightness</label>
+      <div class="control">
+       <input id="brightness" class="input" type="text" value="%BRIGHTNESS%" />
+      </div>
+     </div>
+ 
+      <div class="control">
+     <div class="control">
+      <button id="save" class="button is-primary">Save</button>
+     </div>
+    </div>
+
+   </form>
+
+  </div>
+
+  <div class="column is-one-quarter">
+   <div class="panel is-primary">
+    <p class="panel-heading">
+     Effect Parameters
+    </p>
+   </div>
+
+   <div class="field">
+    <label class="label">Speed</label>
+    <div class="control">
+     <input id="speed" class="input" type="text" value="%SPEED%" />
+    </div>
+   </div>
+     
+   <div class="field">
+    <label class="label">Delay</label>
+    <div class="control">
+     <input id="delay" class="input" type="text" value="%DELAY%" />
+    </div>
+   </div>  
+
+   <div class="field">
+    <label class="label">Density</label>
+    <div class="control">
+     <input id="density" class="input" type="text" value="%DENSITY%" />
+    </div>
+   </div>  
+
+  </div>
+ 
+  <div class="column is-one-fifth">
+   <div class="panel is-warning">
+    <p class="panel-heading">
+     Debug LEDs
+    </p>
+   </div>
+
+   <div class="block">
+    <p class="state">state: <span id="state">%STATE%</span></p>
+    <p><button id="button" class="button is-warning">Toggle LED</button></p>  
+   </div>
+   
+    <div class="block"></div>
+
+    <div class="panel is-danger">
+     <p class="panel-heading">
+       Danger Zone
+     </p>
+    </div>
+
+    <div class="block">
+     This device supports over the air (OTA) firmware updates. If you want to use this feature then be sure you 
+     know what you are doing as uploading a bad firmware can brick the device.
+    </div>
+    <div class="block">
+     <b>You have been warned!</b>
+    </div>
+    <div class="block">
+     If you really want to do this, press the button below:
+    </div>
+    <div class="control">
+     <button id="ota" class="button is-danger">Update Firmware</button>
+    </div>
+   </div>
+  </div>
+ 
+<script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"></script>  
+<script>
+  var gateway = `ws://${window.location.hostname}/ws`;
+  var websocket;
+  window.addEventListener('load', onLoad);
+  function initWebSocket() {
+    console.log('Trying to open a WebSocket connection...');
+    websocket = new WebSocket(gateway);
+    websocket.onopen    = onOpen;
+    websocket.onclose   = onClose;
+    websocket.onmessage = onMessage; // <-- add this line
+  }
+  function onOpen(event) {
+    console.log('Connection opened');
+  }
+  function onClose(event) {
+    console.log('Connection closed');
+    setTimeout(initWebSocket, 2000);
+  }
+  function onMessage(event) {
+    var state;
+    if (event.data == "1"){
+      state = "ON";
+    }
+    else{
+      state = "OFF";
+    }
+    document.getElementById('state').innerHTML = state;
+  }
+  function onLoad(event) {
+    initWebSocket();
+    initEventCatchers();
+  }
+  function initEventCatchers() {
+    document.getElementById('button').addEventListener('click', toggle);
+    document.getElementById('save').addEventListener('click', savedata);
+    document.getElementById('blackout').addEventListener('change', blackoutChange);
+    document.getElementById('ota').addEventListener('click', function() {window.location='/update'});
+  }
+  function toggle() {
+    websocket.send('toggle');
+  }
+  function blackoutChange() {
+    var sw = document.getElementById('blackout');
+
+    if (sw.checked) {
+        websocket.send('lights?state=on');
+    }
+    else {
+        websocket.send('lights?state=off');
+    }
+  }
+  function savedata() {
+    var res = 'save?name=' + document.getElementById('devicename').value +
+                  '&numleds=' + document.getElementById('numleds').value + 
+                  '&order=' + document.getElementById('order').value +
+                  '&speed=' + document.getElementById('speed').value +
+                  '&delay=' + document.getElementById('delay').value +
+                  '&brightness=' + document.getElementById('brightness').value +
+                  '&density=' + document.getElementById('density').value +
+                  '&pattern=' + document.getElementById('pattern').value;
+
+    websocket.send(res);
+  }
+</script>
+</body>
+</html>)rawliteral";
