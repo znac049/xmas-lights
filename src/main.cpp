@@ -69,49 +69,55 @@ void IRAM_ATTR onTimer() {
 
 void setup()
 {
-  Serial.begin(115200);
+    Serial.begin(115200);
 
-  Serial.println("Booting");
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Connection Failed! Rebooting...");
-    delay(5000);
-    ESP.restart();
-  }
+    Serial.println("Booting");
 
-  Serial.println("Ready");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+    Serial.print("Prescaler: ");
+    Serial.println(PRESCALER);
+    timer = timerBegin(0, 160, true);
+    timerAttachInterrupt(timer, &onTimer, true);
+    timerAlarmWrite(timer, 10, true);
+    timerAlarmEnable(timer);
 
-  Serial.print("Prescaler: ");
-  Serial.println(PRESCALER);
-  timer = timerBegin(0, 160, true);
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, 10, true);
-  timerAlarmEnable(timer);
+    pinMode(POSITIVE_PHASE_PIN, OUTPUT);
+    pinMode(NEGATIVE_PHASE_PIN, OUTPUT);
+    pinMode(POSITIVE_POT_PIN, INPUT);
+    pinMode(NEGATIVE_POT_PIN, INPUT);
+    
+    digitalWrite(POSITIVE_PHASE_PIN, 0);
+    digitalWrite(NEGATIVE_PHASE_PIN, 0);
 
-  pinMode(POSITIVE_PHASE_PIN, OUTPUT);
-  pinMode(NEGATIVE_PHASE_PIN, OUTPUT);
-  pinMode(POSITIVE_POT_PIN, INPUT);
-  pinMode(NEGATIVE_POT_PIN, INPUT);
-  
-  digitalWrite(POSITIVE_PHASE_PIN, 0);
-  digitalWrite(NEGATIVE_PHASE_PIN, 0);
+    Serial.println("Setup done");
 
-  Serial.println("Setup done");
+    Serial.print("H-Brige control A: Pin ");
+    Serial.println(POSITIVE_PHASE_PIN);
+    
+    Serial.print("H-Brige control B: Pin ");
+    Serial.println(NEGATIVE_PHASE_PIN);
+    
+    Serial.print("Positive channel pot: Pin ");
+    Serial.println(POSITIVE_POT_PIN);
+    
+    Serial.print("Negative channel pot: Pin ");
+    Serial.println(NEGATIVE_POT_PIN);
 
-  Serial.print("H-Brige control A: Pin ");
-  Serial.println(POSITIVE_PHASE_PIN);
-  
-  Serial.print("H-Brige control B: Pin ");
-  Serial.println(NEGATIVE_PHASE_PIN);
-  
-  Serial.print("Positive channel pot: Pin ");
-  Serial.println(POSITIVE_POT_PIN);
-  
-  Serial.print("Negative channel pot: Pin ");
-  Serial.println(NEGATIVE_POT_PIN);
+      // Connect to Wi-Fi
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(2000);
+        Serial.println("Connecting to WiFi..");
+    }
+
+    if(!MDNS.begin(Settings::get("devicename").c_str())) {
+        Serial.println("Error starting mDNS");
+        return;
+    }
+
+    // Print ESP Local IP Address
+    Serial.println(WiFi.localIP());
+
+    setupWebserver();
 }
 
 void loop()
