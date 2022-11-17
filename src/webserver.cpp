@@ -6,6 +6,8 @@
 #include <ESPmDNS.h>
 #include <Preferences.h>
 
+#include "h-bridge.h"
+
 #include "defs.h"
 #include "Settings.h"
 #include "html.html"

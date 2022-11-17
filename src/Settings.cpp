@@ -4,6 +4,11 @@
 #include "defs.h"
 #include "Settings.h"
 
+nvm_option *Settings::allVars[] = {
+    {"deviceName", IS_STRING},
+    {"pattern", IS_INT},
+};
+
 bool Settings::load()
 {
     Preferences prefs;

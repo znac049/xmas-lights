@@ -3,6 +3,8 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 
+#include "h-bridge.h"
+
 #define CLOCK_FREQUENCY 80000000
 #define CYCLES_PER_SECOND 200
 #define PRESCALER CLOCK_FREQUENCY / (CYCLES_PER_SECOND * 512)

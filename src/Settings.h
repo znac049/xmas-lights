@@ -3,18 +3,7 @@
 
 class Settings {
     public:
-        enum storeAs { IS_STRING, IS_INT };
-
-        static struct {
-            storeAs varType;
-            char *varName;
-        } allVars[] = {
-            {IS_STRING, "deviceName"},
-            {IS_INT, "patternNumber"},
-            {IS_INT, "speed"},
-            {IS_INT, "loopDelay"},
-            {IS_INT, "brightness"},
-        };
+        static nvm_option *allVars[];
 
         static bool load();
         static bool save();
